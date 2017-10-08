@@ -1,0 +1,549 @@
+
+ <!DOCTYPE HTML>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  
+    <title>深入理解卷积 | 塞外烟雨</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no">
+    
+    <meta name="author" content="塞外烟雨">
+    
+
+    
+    <meta name="description" content="博客原文 [http://colah.github.io/posts/2014-07-Understanding-Convolutions/) 在前一篇博文中，我介绍了如何理解卷积神经网络（convolutional neural networks，CNN）,并没有涉及到太多的数学原理。如果想进一步了解，我们需要理解什么是卷积。 如果你仅仅是想理解CNN而已，那么粗略了解卷积就足够了。但是本系">
+<meta name="keywords" content="卷积,卷积神经网络">
+<meta property="og:type" content="article">
+<meta property="og:title" content="深入理解卷积">
+<meta property="og:url" content="http://yoursite.com/2017/09/22/Understanding_Convolutions/index.html">
+<meta property="og:site_name" content="塞外烟雨">
+<meta property="og:description" content="博客原文 [http://colah.github.io/posts/2014-07-Understanding-Convolutions/) 在前一篇博文中，我介绍了如何理解卷积神经网络（convolutional neural networks，CNN）,并没有涉及到太多的数学原理。如果想进一步了解，我们需要理解什么是卷积。 如果你仅仅是想理解CNN而已，那么粗略了解卷积就足够了。但是本系">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://yoursite.com/img/Understanding_Convolutions/ProbConv-fagb.png">
+<meta property="og:image" content="http://yoursite.com/img/Understanding_Convolutions/ProbConv-split-21.png">
+<meta property="og:image" content="http://yoursite.com/img/Understanding_Convolutions/ProbConv-splits-12-03.png">
+<meta property="og:image" content="http://yoursite.com/img/Understanding_Convolutions/ProbConv-OnePath.png">
+<meta property="og:image" content="http://yoursite.com/img/Understanding_Convolutions/ProbConv-SumPaths.png">
+<meta property="og:image" content="http://yoursite.com/img/Understanding_Convolutions/ProbConv-Reverse.png">
+<meta property="og:image" content="http://yoursite.com/img/Understanding_Convolutions/ProbConv-BackProb.png">
+<meta property="og:image" content="http://yoursite.com/img/Understanding_Convolutions/ProbConv-Intermediate.png">
+<meta property="og:image" content="http://yoursite.com/img/Understanding_Convolutions/ProbConv-Intermediate-Align.png">
+<meta property="og:image" content="http://yoursite.com/img/Understanding_Convolutions/ProbConv-Intermediate-Sep.png">
+<meta property="og:image" content="http://yoursite.com/img/Understanding_Convolutions/Wiki-BoxConvAnim.gif">
+<meta property="og:image" content="http://yoursite.com/img/Understanding_Convolutions/ProbConv-TwoDim.png">
+<meta property="og:image" content="http://yoursite.com/img/Understanding_Convolutions/RiverTrain-ImageConvDiagram.png">
+<meta property="og:image" content="http://yoursite.com/img/Understanding_Convolutions/Gimp-Blur.png">
+<meta property="og:image" content="http://yoursite.com/img/Understanding_Convolutions/Gimp-Edge.png">
+<meta property="og:image" content="http://yoursite.com/img/Understanding_Convolutions/Conv-9-Conv2-XY.png">
+<meta property="og:image" content="http://yoursite.com/img/Understanding_Convolutions/Conv-9-Conv2-XY-W.png">
+<meta property="og:image" content="http://yoursite.com/img/Understanding_Convolutions/Conv2-5x5-Conv2-XY.png">
+<meta property="og:updated_time" content="2017-10-08T07:14:58.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="深入理解卷积">
+<meta name="twitter:description" content="博客原文 [http://colah.github.io/posts/2014-07-Understanding-Convolutions/) 在前一篇博文中，我介绍了如何理解卷积神经网络（convolutional neural networks，CNN）,并没有涉及到太多的数学原理。如果想进一步了解，我们需要理解什么是卷积。 如果你仅仅是想理解CNN而已，那么粗略了解卷积就足够了。但是本系">
+<meta name="twitter:image" content="http://yoursite.com/img/Understanding_Convolutions/ProbConv-fagb.png">
+
+    
+    <link rel="alternative" href="/atom.xml" title="塞外烟雨" type="application/atom+xml">
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/jacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/jacman.jpg">
+    
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://cdn1.lncld.net/static/js/av-min-1.2.1.js"></script>
+  <script>AV.initialize("7pEESCi8jDHbjpNLnh6Cx33s-gzGzoHsz", "1PJlMde2wc8muwDqOQVOYtX1");</script>
+</head> 
+
+  <body>
+    <header>
+      
+<div>
+		
+			<div id="imglogo">
+				<a href="/"><img src="/img/logo.jpg" alt="塞外烟雨" title="塞外烟雨"/></a>
+			</div>
+			
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="塞外烟雨">塞外烟雨</a></h1>
+				<h2 class="blog-motto"></h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					<ul>
+					 
+						<li><a href="/">主页</a></li>
+					
+						<li><a href="/archives">归档</a></li>
+					
+						<li><a href="/about">关于</a></li>
+					
+					<li>
+ 					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="search" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="hidden" name="q" value="site:yoursite.com">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>			
+</div>
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+  
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2017/09/22/Understanding_Convolutions/" title="深入理解卷积" itemprop="url">深入理解卷积</a>
+  </h1>
+  <p class="article-author">By
+       
+		<a href="/about" title="塞外烟雨" target="_blank" itemprop="author">塞外烟雨</a>
+		
+  <p class="article-time">
+    <time datetime="2017-09-22T12:28:55.000Z" itemprop="datePublished"> 发表于 2017-09-22</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">文章目录</strong>
+		
+			<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#从丢掷小球例子谈起"><span class="toc-number">1.</span> <span class="toc-text">从丢掷小球例子谈起</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#卷积的可视化"><span class="toc-number">2.</span> <span class="toc-text">卷积的可视化</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#更高维的卷积"><span class="toc-number">3.</span> <span class="toc-text">更高维的卷积</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#卷积神经网络（Convolutional-Neural-Networks）"><span class="toc-number">4.</span> <span class="toc-text">卷积神经网络（Convolutional Neural Networks）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#结论"><span class="toc-number">5.</span> <span class="toc-text">结论</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#本系列的后续博文"><span class="toc-number">6.</span> <span class="toc-text">本系列的后续博文</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#致谢"><span class="toc-number">7.</span> <span class="toc-text">致谢</span></a></li></ol>
+		
+		</div>
+		
+		<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=default"></script>
+
+<p>博客原文 [<a href="http://colah.github.io/posts/2014-07-Understanding-Convolutions/" target="_blank" rel="external">http://colah.github.io/posts/2014-07-Understanding-Convolutions/</a>)</p>
+<p>在<a href="http://colah.github.io/posts/2014-07-Conv-Nets-Modular/" target="_blank" rel="external">前一篇</a>博文中，我介绍了如何理解卷积神经网络（convolutional neural networks，CNN）,并没有涉及到太多的数学原理。如果想进一步了解，我们需要理解什么是卷积。</p>
+<p>如果你仅仅是想理解CNN而已，那么粗略了解卷积就足够了。但是本系列的目的是带着大家更深入理解CNN并学习更多选择。因此，我们将需要十分深入的理解卷积。</p>
+<p>幸运的事，通过几个例子，能够比较清楚的解释什么是卷积。</p>
+<h2 id="从丢掷小球例子谈起"><a href="#从丢掷小球例子谈起" class="headerlink" title="从丢掷小球例子谈起"></a>从丢掷小球例子谈起</h2><p>想象下我们从一个高处将一个球丢到地面，并且小球着地后只有一个运动方向。<em>那么，将该小球丢掷一次后，并从它停滞的地方再次丢掷，通过这些操作，小球运动距离\(c\)的可能性是多少。</em> </p>
+<p>我们开始解决上述问题。第一次丢掷后，小球会以概率\(f(a)\)从开始点运动\(a\)个单位距离， 其中 \(f\) 是概率分布函数。</p>
+<p>完成第一次丢掷后，我们拾起小球，在第一次停滞的地方从另一个高点再次丢掷，那么小球再次运动\(b\)个单位距离的概率是\(g(b)\)，如果两次丢掷的高度不同，那么\(f\)和\(g\)可能不一样。</p>
+<div align="center"><br> <img src="/img/Understanding_Convolutions/ProbConv-fagb.png" width="400" height="300"><br></div><br>为满足小球总的运动距离为\(c\)的假设，我们修复第一次丢掷的距离\(a\)，和第二次丢掷的距离\(b\)，那么有\(a+b=c\)，进而概率为 \(g(a)\cdot f(a)\)。<br><br>假设一个特殊例子，如果需要总的移动距离为3，第一次滚动距离为  \(a=2\)，为了满足  \(a+b=3\)，那么第二次滚动的距离为  \( b=1\)。 相应的概率为 \( f(2)\cdot  g(1)\)。<br><div align="center"><br> <img src="/img/Understanding_Convolutions/ProbConv-split-21.png" width="500" height="400"><br></div><br>但是，这并不是达到总距离3的唯一方式。小球可以第一次滚动1，第二次滚动2.或者第一次滚动0，第二次滚动3，只要相加等于3，对于任何a和b都是满足条件的。<br><div align="center"><br> <img src="/img/Understanding_Convolutions/ProbConv-splits-12-03.png" width="500" height="400"><br></div><br>其概率分别为 \(f(1)⋅g(2)\) 和\( f(0)⋅g(3)\)。<br>为获得小球滚动到\(c\)的总概率，我们不能仅考虑一种情况。相反，我们需要考虑到所有将\(c\)分割成\(a\)和\(b\)并且加和每种情况的概率。<br>$$…  f(0)⋅g(3) + f(1)⋅g(2) + f(2)⋅g(1)  …$$<br>我们已经知道对于 \(a+b=c\) 的概率是 \(f(a)⋅g(b)f(a)⋅g(b)\)。 因此，可以加和 \(a+b=c \)的所有解，可得全部的似然概率:<br>\[\sum_{a+b=c} f(a) \cdot g(b)\]<br>现在比较明了，我们正在做一个卷积操作。一般地， \(f\) 和 \(g\) 的卷积，在\(c\)处的值定义为：<br>\[(f\ast g)(c) = \sum_{a+b=c} f(a) \cdot g(b)\]<br>用 \(b = c-a\) 替代可得：<br>\[(f\ast g)(c) = \sum_a f(a) \cdot g(c-a)\]<br>这是卷积的标准定义。<br><br>保证结果更可信，我们考虑小球可能滚动的距离。第一次丢掷后，小球以概率 (f(a))滚动到中间的位置  \(a\)  。如果小球停滞在 \(a\)，那么它会以概率 \(g(c-a)\)在第二次丢掷后滚动到 \(c\).<br><div align="center"><br> <img src="/img/Understanding_Convolutions/ProbConv-OnePath.png" width="500" height="400"><br></div><br>为得到卷积，我们考虑所有这样的中间位置。<br><div align="center"><br> <img src="/img/Understanding_Convolutions/ProbConv-SumPaths.png" width="500" height="400"><br></div>
+
+<h2 id="卷积的可视化"><a href="#卷积的可视化" class="headerlink" title="卷积的可视化"></a>卷积的可视化</h2><p>有一个很好的技巧帮助你更容易地理解卷积。</p>
+<p>首先，一个比较明显的结论。 假设一个小球从它掉落的地方滚动到一个特定的距离  \(x\) 的概率是 \(f(x)\)。那么，他从停止的地方滚动  (x)的概率是\(f(-x)\)。</p>
+<div align="center"><br> <img src="/img/Understanding_Convolutions/ProbConv-Reverse.png" width="500" height="400"><br></div><br>如果我们已知小球第二次丢掷后停止在  \(c\) ，那么第一次停止  \(a\)的概率是多少呢?<br><div align="center"><br> <img src="/img/Understanding_Convolutions/ProbConv-BackProb.png" width="500" height="400"><br></div><br>明显，前一次滚动距离 \(a\) 的概率是 \(g(-(a-c)) = g(c-a)\)。<br><br>现在考虑每一个中间距离，使得最终的停滞距离为  \(c\)。我们知道第一次停滞的概率为\(f(a)\)。 我们也知道了如果第一次停留在  \(a\), 经过第二次停留在 (c) 的概率 \(g(c-a)\)。<br><div align="center"><br> <img src="/img/Understanding_Convolutions/ProbConv-Intermediate.png" width="500" height="700"><br></div><br>对所有这样的 \(a\) 求和，我们便得到了卷积。<br><br>这一步的好处是，使得在计算 \(c\)  处的卷积，用一张图谱就能够可视化了。 By shifting the bottom half around, we can evaluate the convolution at other values of (c)。这帮助我们较全面的理解卷积。<br><br>For example, we can see that it peaks when the distributions align.<br><div align="center"><br> <img src="/img/Understanding_Convolutions/ProbConv-Intermediate-Align.png" width="500" height="700"><br></div><br>And shrinks as the intersection between the distributions gets smaller.<br><div align="center"><br> <img src="/img/Understanding_Convolutions/ProbConv-Intermediate-Sep.png" width="500" height="700"><br></div><br>By using this trick in an animation, it really becomes possible to visually understand convolutions.<br><br>Below, we’re able to visualize the convolution of two box functions:<br><div align="center"><br> <img src="/img/Understanding_Convolutions/Wiki-BoxConvAnim.gif" width="600" height="700"><br></div>
+
+<p>Armed with this perspective, a lot of things become more intuitive.</p>
+<p>Let’s consider a non-probabilistic example. Convolutions are sometimes used in audio manipulation. For example, one might use a function with two spikes in it, but zero everywhere else, to create an echo. As our double-spiked function slides, one spike hits a point in time first, adding that signal to the output sound, and later, another spike follows, adding a second, delayed copy.</p>
+<h2 id="更高维的卷积"><a href="#更高维的卷积" class="headerlink" title="更高维的卷积"></a>更高维的卷积</h2><p>卷积是一个一般的思想，我们可以将其用在更高维度的操作中。</p>
+<p>我们再次以丢掷小球的为例。现在，当小球下落后，它滚动的方向并不是一个，而是两个。 </p>
+<div align="center"><br> <img src="/img/Understanding_Convolutions/ProbConv-TwoDim.png" width="500" height="400"><br></div><br>和之前一样，卷积是:<br>\[(f\ast g)(c) = \sum_{a+b=c} f(a) \cdot g(b)\]<br>不同的是。 现在 \(a\), \(b\) 和 \(c\) 都是向量。更明确的：<br>\[(f\ast g)(c_1, c_2) = \sum_{\begin{array}{c}a_1+b_1=c_1\\ a_2+b_2=c_2\end{array}} f(a_1,a_2) \cdot g(b_1,b_2)\]<br>或者根据标准定义：<br>\[(f\ast g)(c_1, c_2) = \sum_{a_1, a_2} f(a_1, a_2) \cdot g(c_1-a_1, c_2-a_2)\]<br>类似于一维度=卷积，我们可以将一个二维卷积看成是一个函数作用于另外一个函数的滑动操作，想乘或者相加.<br><br>一个一般的应用就是图片处理。我们可以将图片看成是一个二维函数。许多重要的图片转换都是卷积，当对图像函数进行卷积操作处理是，用一个小的，局部函数，称之为“核函数”。<br><div align="center"><br> <img src="/img/Understanding_Convolutions/RiverTrain-ImageConvDiagram.png" width="500" height="400"><br></div><br>核函数滑过图片的每一部分，并将覆盖的像素值求和计算出一个新的像素值。<br><br>例如，通过平均 3x3 像素，我们可以对图像进行模糊处理。为了达到这个目的，核可以对box的像素值都是  \(1/9\) ，<br><div align="center"><br> <img src="/img/Understanding_Convolutions/Gimp-Blur.png" width="500" height="400"><br></div><br>也可以通过采用相邻的像素值  \(-1\) 和 \(1\) ，其他都是0的核来锐化图片。也即是，通过相邻像素值相减。当相邻的像素值较相近时，得到的结果将会趋近于0。在边缘，像素值则会差别很大。<br><div align="center"><br> <img src="/img/Understanding_Convolutions/Gimp-Edge.png" width="500" height="400"><br></div>
+
+<h2 id="卷积神经网络（Convolutional-Neural-Networks）"><a href="#卷积神经网络（Convolutional-Neural-Networks）" class="headerlink" title="卷积神经网络（Convolutional Neural Networks）"></a>卷积神经网络（Convolutional Neural Networks）</h2><p>那么，卷积和卷积神经网络有什么联系呢？</p>
+<p>可以认为一个一维的卷积层，输入  \({x_n}\) 及输出 \({y_n}\),，像前一篇博客讨论的:</p>
+<p><div align="center"><br> <img src="/img/Understanding_Convolutions/Conv-9-Conv2-XY.png" width="500" height="400"><br></div><br>正如我们观察的，可以将输出通过输入表示：</p>
+<p><div align="center"><br>\(y_n = A(x_{n}, x_{n+1}, …)\)<br></div><br>一般地，\(A\) 可以是多个神经元。但是目前仅仅认为是一个单一神经元。</p>
+<p>回忆到一个典型的神经网络的神经元表述如下：<br>\[\sigma(w_0x_0 + w_1x_1 + w_2x_2 ~…~ + b)\]<br>其中 \(x_0\), \(x_1\)… 是输入。权值, \(w_0\), \(w_1\), … 表征了神经元怎么和输入联系起来的。负的权值表示输入值是抑制神经元激活，正的却是刺激神经元激活。权值是神经元的关键部分，控制了神经元的如何表现。</p>
+<p>Saying that multiple neurons are identical is the same thing as saying that the weights are the same.</p>
+<p>It’s this wiring of neurons, describing all the weights and which ones are identical, that convolution will handle for us.</p>
+<p>一般地，我们将神经元和层一起描述，而不是分开来说。这个关键点是权重矩阵，\(W\):<br>\[y = \sigma(Wx + b)\]<br>例如，可得：<br>\[y_0 = \sigma(x_1 +  x_2 … )\]<br>\[y_0 = \sigma(W_{0,0}x_0 + W_{0,1}x_1 + W_{0,2}x_2 …)\]<br>\[y_1 = \sigma(W_{1,0}x_0 + W_{1,1}x_1 + W_{1,2}x_2 …)\]<br>每一行都描述了神经元连接到输入的权重。 </p>
+<p>再回到卷积层，然后，因为有许多相同神经元的肤质，许多权重出现在多个位置。 </p>
+<p><div align="center"><br> <img src="/img/Understanding_Convolutions/Conv-9-Conv2-XY-W.png" width="500" height="400"><br></div><br>等效于如下方程：</p>
+<p>\[y_0 = \sigma(W_0x_0 + W_1x_1 -b)\]</p>
+<p>\[y_1 = \sigma(W_0x_1 + W_1x_2 -b)\]<br>到此，一般地，权重举重使每个神经元连接每个输入通过不同的权重：</p>
+<p>\[W = \left[\begin{array}{ccccc} W_{0,0} &amp; W_{0,1} &amp; W_{0,2} &amp; W_{0,3} &amp; …\\W_{1,0} &amp; W_{1,1} &amp; W_{1,2} &amp; W_{1,3} &amp; …\\ W_{2,0} &amp; W_{2,1} &amp; W_{2,2} &amp; W_{2,3} &amp; …\\ W_{3,0} &amp; W_{3,1} &amp; W_{3,2} &amp; W_{3,3} &amp; …\\ … &amp; … &amp; … &amp; … &amp; …\ \end{array}\right]\]</p>
+<p>和上述相似的卷积层的矩阵看起来不尽相同。相同的权重出现在一连串的位置。并且由于神经元不会连接到许多的输入，因此这里有很多0.</p>
+<p>\[W = \left[\begin{array}{ccccc} w_0 &amp; w_1 &amp; 0 &amp; 0 &amp; …\\ 0 &amp; w_0 &amp; w_1 &amp; 0 &amp; …\\ 0 &amp; 0 &amp; w_0 &amp; w_1 &amp; …\\ 0 &amp; 0 &amp; 0 &amp; w_0 &amp; …\\ … &amp; … &amp; … &amp; … &amp; …\\ \end{array}\right]\]</p>
+<p>将上述矩阵相乘和卷积操作  \([…0, w_1, w_0, 0…]\)一样。 函数滑过不同的位置，因为有不同的神经元在这些位置。 </p>
+<p>对于2-维卷积层什么呢？ </p>
+<p><div align="center"><br> <img src="/img/Understanding_Convolutions/Conv2-5x5-Conv2-XY.png" width="500" height="400"><br></div><br>The wiring of a two dimensional convolutional layer corresponds to a two-dimensional convolution.</p>
+<p>考虑用卷积来瑞华图片的例子，通过滑动核并且对每块都作用。和这个类似，卷积层会将神经元作用到每一部分的图像。</p>
+<h2 id="结论"><a href="#结论" class="headerlink" title="结论"></a>结论</h2><p>我们介绍了许多数学东西，也许他并不是很明显。卷积是一个有用的工具在概率理论和计算机图像，但是我们能够从处理卷积神经网络的到什么呢？ </p>
+<p>第一个优势是，我们有一些很有用的语言来描述神经网络。上述例子还不是很复杂的来说明了这个问题，但是卷积让我们能够 but convolutions will allow us to get rid of huge amounts of unpleasant book-keeping for us.</p>
+<p>Secondly, convolutions come with significant implementational advantages. Many libraries provide highly efficient convolution routines. Further, while convolution naively appears to be an \(O(n^2)\) operation, using some rather deep mathematical insights, it is possible to create a \(O(n\log(n))\) implementation. We will discuss this in much greater detail in a future post.</p>
+<p>事实上，在GPUs上利用高性能分布式卷积计算已经在近些年的计算机视觉得到应用。</p>
+<h2 id="本系列的后续博文"><a href="#本系列的后续博文" class="headerlink" title="本系列的后续博文"></a>本系列的后续博文</h2><p>本博文是卷积神经网络系列的一部分何其一般化。前两篇博文会回顾熟悉深度学习，然后比较感兴趣对每一部分。如果想获得更新提醒，可以获取的  RSS ！</p>
+<h2 id="致谢"><a href="#致谢" class="headerlink" title="致谢"></a>致谢</h2><p>在此特别感谢 Eliana Lorch，关于对卷积的讨论和对本博文的支持。 </p>
+<p>同时也十分感谢 Michael Nielsen 和 Dario Amodei 的评论和支持。</p>
+<p>1.我们想小球第一次滚动  \(a\) 第二次滚动\(b\) 。其概率分布为\(P(A) = f(a)) 和 (P(b) = g(b)\) 是独立的，并且分布在0对称。因此可得 \(P(a,b) = P(a) * P(b) = f(a) \cdot g(b)\).</p>
+<p>2.关于非标准的定义部分，我之前没有看到过，收益颇多。在以后的博文中，我们会发现这个定义会十分有用，因为它引领了数学机构。但是它也优势因为他使得许多卷积的数学特性十分明显。</p>
+<p>例如卷积是一个累加操作。也就是说，\(f\ast g = g\ast f\)。 但是为什么呢？<br>\[(f\ast g)(c) = \sum_{a+b=c} f(a) \cdot g(b)\]</p>
+<p>\[ \sum_{a+b=c} f(a) \cdot g(b)  \sum_{b+a=c} g(b) \cdot f(a)   \]</p>
+<p>\[ \sum_{a+b=c} f(a) \cdot g(b) = \sum_{b+a=c} g(b) \cdot f(a) \]<br>卷积同样是可交换的. That is,\((f\ast g)\ast h = f\ast (g\ast h)\)。 为什么呢?</p>
+<p>\[\sum_{(a+b)+c=d} (f(a) \cdot g(b)) \cdot h(c) = \sum_{a+(b+c)=d} f(a) \cdot (g(b)\cdot h(c))\]<br>3.还有一些偏差，因为  “threshold” 神经元是否激活。但是这是十分简单的，并且我不想在本节来谈论。 </p>
+  
+	</div>
+		<footer class="article-footer clearfix">
+<div class="article-catetags">
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/神经网络/">神经网络</a>►<a class="article-category-link" href="/categories/神经网络/翻译/">翻译</a>►<a class="article-category-link" href="/categories/神经网络/翻译/机器学习/">机器学习</a>
+</div>
+
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/卷积/">卷积</a><a href="/tags/卷积神经网络/">卷积神经网络</a>
+  </div>
+
+</div>
+
+
+
+	<div class="article-share" id="share">
+	
+	  <div data-url="http://yoursite.com/2017/09/22/Understanding_Convolutions/" data-title="深入理解卷积 | 塞外烟雨" data-tsina="" class="share clearfix">
+	  </div>
+	
+	</div>
+
+
+</footer>
+
+   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+
+<div class="next">
+<a href="/2017/09/22/Understanding_Convolutional_Neural_Networks_for_NLP/"  title="卷积神经网络在自然语言处理中的应用">
+ <strong>下一篇：</strong><br/> 
+ <span>卷积神经网络在自然语言处理中的应用
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">文章目录</strong>
+ 
+ <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#从丢掷小球例子谈起"><span class="toc-number">1.</span> <span class="toc-text">从丢掷小球例子谈起</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#卷积的可视化"><span class="toc-number">2.</span> <span class="toc-text">卷积的可视化</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#更高维的卷积"><span class="toc-number">3.</span> <span class="toc-text">更高维的卷积</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#卷积神经网络（Convolutional-Neural-Networks）"><span class="toc-number">4.</span> <span class="toc-text">卷积神经网络（Convolutional Neural Networks）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#结论"><span class="toc-number">5.</span> <span class="toc-text">结论</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#本系列的后续博文"><span class="toc-number">6.</span> <span class="toc-text">本系列的后续博文</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#致谢"><span class="toc-number">7.</span> <span class="toc-text">致谢</span></a></li></ol>
+ 
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
+<aside class="clearfix">
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">分类</p>
+		<ul>
+		
+		  
+			<li><a href="/categories/自然语言处理/机器学习/" title="机器学习">机器学习<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/神经网络/翻译/机器学习/" title="机器学习">机器学习<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/神经网络/" title="神经网络">神经网络<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/神经网络/翻译/" title="翻译">翻译<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/自然语言处理/机器学习/翻译/" title="翻译">翻译<sup>1</sup></a></li>
+		  
+		
+		  
+			<li><a href="/categories/自然语言处理/" title="自然语言处理">自然语言处理<sup>1</sup></a></li>
+		  
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist">
+	<p class="asidetitle">标签</p>
+		<ul class="clearfix">
+		
+			
+				<li><a href="/tags/卷积神经网络/" title="卷积神经网络">卷积神经网络<sup>2</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/卷积/" title="卷积">卷积<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/自然语言处理/" title="自然语言处理">自然语言处理<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/NLP/" title="NLP">NLP<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/机器学习/" title="机器学习">机器学习<sup>1</sup></a></li>
+			
+		
+			
+				<li><a href="/tags/翻译/" title="翻译">翻译<sup>1</sup></a></li>
+			
+		
+		</ul>
+</div>
+
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+
+		<p class="copyright">
+		Powered by <a href="http://hexo.io" target="_blank" title="hexo">hexo</a> and Theme by <a href="https://github.com/wuchong/jacman" target="_blank" title="Jacman">Jacman</a> © 2017 
+		
+		<a href="/about" target="_blank" title="塞外烟雨">塞外烟雨</a>
+		
+		
+		</p>
+</div>
+</footer>
+    <script src="/js/jquery-2.0.3.min.js"></script>
+<script src="/js/jquery.imagesloaded.min.js"></script>
+<script src="/js/gallery.js"></script>
+<script src="/js/jquery.qrcode-0.12.0.min.js"></script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+  
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else{
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  c.click(function(){
+    ta.css('display', 'block').addClass('fadeIn');
+  });
+  o.click(function(){
+    ta.css('display', 'none');
+  });
+  $(window).scroll(function(){
+    ta.css("top",Math.max(140,320-$(this).scrollTop()));
+  });
+});
+</script>
+
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var $this = $('.share'),
+      url = $this.attr('data-url'),
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina'),
+      description = $this.attr('description');
+  var html = [
+  '<div class="hoverqrcode clearfix"></div>',
+  '<a class="overlay" id="qrcode"></a>',
+  '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+  '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+  '<a href="#qrcode" class="article-share-qrcode" title="微信"></a>',
+  '<a href="http://widget.renren.com/dialog/share?resourceUrl=' + encodedUrl + '&srcUrl=' + encodedUrl + '&title=' + title +'" class="article-share-renren" target="_blank" title="人人"></a>',
+  '<a href="http://service.weibo.com/share/share.php?title='+title+'&url='+encodedUrl +'&ralateUid='+ tsina +'&searchPic=true&style=number' +'" class="article-share-weibo" target="_blank" title="微博"></a>',
+  '<span title="Share to"></span>'
+  ].join('');
+  $this.append(html);
+
+  $('.hoverqrcode').hide();
+
+  var myWidth = 0;
+  function updatehoverqrcode(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+    var qrsize = myWidth > 1024 ? 200:100;
+    var options = {render: 'image', size: qrsize, fill: '#2ca6cb', text: url, radius: 0.5, quiet: 1};
+    var p = $('.article-share-qrcode').position();
+    $('.hoverqrcode').empty().css('width', qrsize).css('height', qrsize)
+                          .css('left', p.left-qrsize/2+20).css('top', p.top-qrsize-10)
+                          .qrcode(options);
+  };
+  $(window).resize(function(){
+    $('.hoverqrcode').hide();
+  });
+  $('.article-share-qrcode').click(function(){
+    updatehoverqrcode();
+    $('.hoverqrcode').toggle();
+  });
+  $('.article-share-qrcode').hover(function(){}, function(){
+      $('.hoverqrcode').hide();
+  });
+});   
+</script>
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.article-content').each(function(i){
+    $(this).find('img').each(function(){
+      if ($(this).parent().hasClass('fancybox')) return;
+      var alt = this.alt;
+      if (alt) $(this).after('<span class="caption">' + alt + '</span>');
+      $(this).wrap('<a href="' + this.src + '" title="' + alt + '" class="fancybox"></a>');
+    });
+    $(this).find('.fancybox').each(function(){
+      $(this).attr('rel', 'article' + i);
+    });
+  });
+  if($.fancybox){
+    $('.fancybox').fancybox();
+  }
+}); 
+</script>
+
+
+
+<!-- Analytics Begin -->
+
+
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?88d896a84ebc42a1d74dca683cafd81e";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
+<!-- Analytics End -->
+
+<!-- Totop Begin -->
+
+	<div id="totop">
+	<a title="返回顶部"><img src="/img/scrollup.png"/></a>
+	</div>
+	<script src="/js/totop.js"></script>
+
+<!-- Totop End -->
+
+<!-- MathJax Begin -->
+<!-- mathjax config similar to math.stackexchange -->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+      processEscapes: true
+    }
+  });
+</script>
+
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      tex2jax: {
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    });
+</script>
+
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for(i=0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+
+<script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=default">
+</script>
+
+
+<!-- MathJax End -->
+
+<!-- Tiny_search Begin -->
+
+<!-- Tiny_search End -->
+
+
+  </body>
+</html>
